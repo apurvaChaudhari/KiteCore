@@ -64,9 +64,10 @@ namespace KiteCore.Helpers
             PrgConstants.ApiKey = apiKey;
             PrgConstants.Apisecret = apisecret;
             kitecon = new KiteConnect(apiKey);
-            Process.Start("https://kite.trade/connect/login?api_key=" + apiKey);
-            Console.WriteLine("kindly enter req token");
-            string token = Console.ReadLine();
+            LoginForm loginForm = new LoginForm();
+            loginForm.Url = "https://kite.trade/connect/login?api_key=" + apiKey;
+            loginForm.ShowDialog();
+            string token = loginForm.RequestToken;
             dynamic data = DataHelpers.Saveaccesstoken(ref kitecon, token);
             PrgConstants.AccessToken = data["access_token"];
             PrgConstants.PublicToken = data["public_token"];
