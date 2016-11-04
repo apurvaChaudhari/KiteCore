@@ -16,6 +16,7 @@ namespace KiteCore
 {
     public class Demo
     {
+        [STAThread]
         private static void Main(string[] args)
         {
             //Create the kite connect variable
