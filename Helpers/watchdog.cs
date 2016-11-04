@@ -15,6 +15,7 @@ namespace KiteCore.Helpers
         {
             this._timer = new Timer
             {
+                AutoReset = false,
                 Enabled = true,
                 Interval = 1000*seconds
             };
