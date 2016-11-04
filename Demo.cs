@@ -22,10 +22,9 @@ namespace KiteCore
             //Create the kite connect variable
             KiteConnect kitecon;
 
-            //Initiate login by entering you apikey and apisectret
-            //This will redirect you to the login page via default browser 
-            //once you complete login you have to copy the request token from redirected link in console and press enter
-            //E.g http://127.0.0.1/?status=success&request_token=xxxxxxx --> copy tyhe xxxxxx part and paste in console
+            //kindly enter "API key", "API secret"(replace them with the strings from your kite api
+            //when you start the program you will get a webbrowser dialogue(Thanks to ishwarm) 
+            //there you login and the program saves the access token and you are good to go.
             //This also initializes the kite connect variable
             //and saves access token,user ID and public token to PrgConstants class for use later
             new Login().Initiate(out kitecon, "API key", "API secret");
