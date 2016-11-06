@@ -11,6 +11,7 @@ namespace KiteCore.Core
     public class KiteStream
     {
         private readonly BlockingCollection<byte[]> _blockingCollection = new BlockingCollection<byte[]>();
+        private CancellationTokenSource ct = new CancellationTokenSource();
         private readonly List<string> _subscription = new List<string>();
         private readonly Watchdog _watchDog;
         private readonly WebSocket _ws;
@@ -41,16 +42,29 @@ namespace KiteCore.Core
             this._ws.OnMessage += (sender, e) =>
             {
                 this._watchDog.Reset();
-                if (e.RawData.Length > 1)
+                try
                 {
-                    this._blockingCollection.Add(e.RawData);
+                    this._blockingCollection.Add(e.RawData, ct.Token);
+                }
+                catch (OperationCanceledException oce)
+                {
+                    return;
                 }
             };
             this._ws.OnClose += (sender, e) =>
             {
-                this._watchDog.Reset(); //redundant
+                //this._watchDog.Reset(); //redundant
                 if (e.Code == (ushort) CloseStatusCode.Away) // You should have an escape from the reconnecting loop.
+                {
+                    ct.Cancel();
                     return;
+                }
+
+                if (e.Code == (ushort)CloseStatusCode.Normal)
+                {
+                    ct.Cancel();
+                    return;
+                }
 
                 if (this._retry < 10)
                 {
@@ -61,13 +75,15 @@ namespace KiteCore.Core
                 else
                 {
                     this._ws.Log.Error("The reconnecting has failed.");
+                    ct.Cancel();
                 }
             };
             this._watchDog.OnTimerExpired += (sender, e) =>
             {
                 //Console.WriteLine("there was a timeout");
-                this._watchDog.Reset();
-                this._ws.Close();
+                //this._watchDog.Reset();
+                if (!(this._ws.ReadyState == WebSocketState.Closed || this._ws.ReadyState == WebSocketState.Closing))
+                    this._ws.Close();
             };
             StartSocket();
         }
@@ -112,7 +128,18 @@ namespace KiteCore.Core
         /// <returns>returns a byte array contining raw websocket data</returns>
         private byte[] GetMsg()
         {
-            return this._blockingCollection.Take();
+            try
+            {
+                byte[] byteArray = this._blockingCollection.Take(ct.Token);
+                if (byteArray.Length > 1)
+                    return byteArray;
+                else
+                    return null;
+            }
+            catch (OperationCanceledException oce)
+            {
+                return null;
+            }
         }
 
 
@@ -235,7 +262,7 @@ namespace KiteCore.Core
         /// </summary>
         public void StopSocket()
         {
-            this._ws.Close();
+            this._ws.Close(CloseStatusCode.Normal);
         }
 
         /// <summary>
@@ -329,7 +356,7 @@ namespace KiteCore.Core
                 this._bytecounter = 0;
                 byte[] binary = GetMsg();
 
-                if (binary.Length == 15) //some errors in websocket data bypass corrupt data
+                if (binary == null || binary.Length == 15) //some errors in websocket data bypass corrupt data
                 {
                     lst.Clear();
                     lst.Add("error");
