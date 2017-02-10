@@ -130,8 +130,15 @@ namespace KiteCore.Core
         {
             try
             {
-                byte[] byteArray = this._blockingCollection.Take(ct.Token);
-                if (byteArray.Length > 1)
+                byte[] byteArray = null;
+                
+                /* drain all msgs and keep only last */
+                while(this._blockingCollection.Count > 0 )
+                {
+                    byteArray = this._blockingCollection.Take(ct.Token);
+                };
+                
+                if (byteArray != null && byteArray.Length > 1)
                     return byteArray;
                 else
                     return null;
